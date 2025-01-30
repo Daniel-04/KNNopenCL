@@ -1,10 +1,12 @@
 #include <CL/cl.h>
-#include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #ifndef CL_TARGET_OPENCL_VERSION
 #define CL_TARGET_OPENCL_VERSION 300
+#endif
+#ifndef DEVICE_TYPE
+#define DEVICE_TYPE CL_DEVICE_TYPE_GPU
 #endif
 
 #define RAW(...) (#__VA_ARGS__)
@@ -19,13 +21,36 @@ typedef struct pipeline {
 
 void setup_pipeline(pipeline *pipe) {
   cl_int err;
-  err = clGetPlatformIDs(1, &pipe->platform, NULL);
+
+  cl_uint num_platforms;
+  err = clGetPlatformIDs(0, NULL, &num_platforms);
   if (err != CL_SUCCESS) {
     fprintf(stderr, "Platform error? %d\n", err);
     abort();
   }
-  err = clGetDeviceIDs(pipe->platform, CL_DEVICE_TYPE_GPU, 1, &pipe->device,
-                       NULL);
+  cl_platform_id *platforms = malloc(sizeof(cl_platform_id) * num_platforms);
+  err = clGetPlatformIDs(num_platforms, platforms, NULL);
+  if (err != CL_SUCCESS) {
+    fprintf(stderr, "Platform error? %d\n", err);
+    abort();
+  }
+  err = CL_FALSE;
+  for (int i = 0; i < num_platforms; i++) {
+    cl_uint num_devices;
+    clGetDeviceIDs(platforms[i], DEVICE_TYPE, 0, NULL, &num_devices);
+    if (num_devices > 0) {
+      pipe->platform = platforms[i];
+      err = CL_SUCCESS;
+      break;
+    }
+  }
+  free(platforms);
+  if (err != CL_SUCCESS) {
+    fprintf(stderr, "No platform found with device: %d\n", DEVICE_TYPE);
+    abort();
+  }
+
+  err = clGetDeviceIDs(pipe->platform, DEVICE_TYPE, 1, &pipe->device, NULL);
   if (err != CL_SUCCESS) {
     fprintf(stderr, "Device error? %d\n", err);
     abort();

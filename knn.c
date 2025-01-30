@@ -68,12 +68,13 @@ const char *knn_src = RAW(__kernel void kern(
 
 int main(int argc, char **argv) {
   if (argc < 3) {
-    fprintf(stderr, "%s train_file test_file [out_file]\n", argv[0]);
+    fprintf(stderr, "%s train_file test_file [out_file] [k]\n", argv[0]);
     abort();
   }
   const char *trainfile = argv[1];
   const char *testfile = argv[2];
-  const char *outfile = argc == 4 ? argv[3] : NULL;
+  const char *outfile = argc >= 4 ? argv[3] : NULL;
+  const int k = argc >= 5 ? atoi(argv[4]) : 3;
   pipeline pipe;
   setup_pipeline(&pipe);
 
@@ -83,7 +84,6 @@ int main(int argc, char **argv) {
   size_t test_npoints = readPoints(testfile);
   size_t test_nfeatures = readFeatures(testfile);
   float *test_data = readData(testfile, test_npoints, test_nfeatures);
-  const int k = 3;
 
   // device memory
   cl_mem d_train_data = create_buffer(
@@ -109,7 +109,7 @@ int main(int argc, char **argv) {
                                       &test_npoints, NULL, 0, NULL, NULL);
   clFinish(pipe.queue);
   double end = clock();
-  printf("Kernel took: %lf seconds", (end - start) / CLOCKS_PER_SEC);
+  printf("Kernel took: %lf seconds\n", (end - start) / CLOCKS_PER_SEC);
   if (err != CL_SUCCESS) {
     fprintf(stderr, "Kernel enqueue error? %d\n", err);
     abort();
@@ -119,6 +119,7 @@ int main(int argc, char **argv) {
                       sizeof(float) * test_npoints * test_nfeatures, test_data,
                       0, NULL, NULL);
   if (outfile) {
+    printf("Output written to %s\n", outfile);
     writeData(outfile, test_npoints, test_nfeatures, test_data);
   }
 
