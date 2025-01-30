@@ -15,12 +15,11 @@ endif
 ifndef TESTFILE
 	$(error TESTFILE must be declared, e.g., make bench TESTFILE=test.csv)
 endif
-	echo "Single core:"
-	perf stat -n -- taskset -c 0 ./knn_cpu $(TRAINFILE) $(TESTFILE) OUTFILE 3
-	echo "Multi core:"
-	perf stat -n -- ./knn_cpu $(TRAINFILE) $(TESTFILE) OUTFILE 3
-	echo "GPU"
-	perf stat -n -- ./knn $(TRAINFILE) $(TESTFILE) OUTFILE 3
+	taskset -c 0    ./knn_cpu $(TRAINFILE) $(TESTFILE) OUTFILE 3
+	taskset -c 0-1  ./knn_cpu $(TRAINFILE) $(TESTFILE) OUTFILE 3
+	taskset -c 0-3  ./knn_cpu $(TRAINFILE) $(TESTFILE) OUTFILE 3
+	taskset -c 0-7  ./knn_cpu $(TRAINFILE) $(TESTFILE) OUTFILE 3
+	./knn $(TRAINFILE) $(TESTFILE) OUTFILE 3
 
 clean: knn knn_cpu
 	rm -f $^

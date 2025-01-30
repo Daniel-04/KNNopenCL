@@ -1,5 +1,6 @@
 #include <string.h>
-#include <time.h>
+#include <sys/time.h>
+#include <unistd.h>
 #define CL_TARGET_OPENCL_VERSION 300
 #include "cl-helpers.c"
 #include "csv-helpers.c"
@@ -103,13 +104,17 @@ int main(int argc, char **argv) {
   clSetKernelArg(knn_kernel, 5, sizeof(int), &k);
 
   // execution
+  long start, end;
+  struct timeval time;
   clFinish(pipe.queue);
-  double start = clock();
+  gettimeofday(&time, NULL);
+  start = (long)time.tv_sec * 1000 + (long)time.tv_usec / 1000;
   cl_int err = clEnqueueNDRangeKernel(pipe.queue, knn_kernel, 1, NULL,
                                       &test_npoints, NULL, 0, NULL, NULL);
   clFinish(pipe.queue);
-  double end = clock();
-  printf("Kernel took: %lf seconds\n", (end - start) / CLOCKS_PER_SEC);
+  gettimeofday(&time, NULL);
+  end = (long)time.tv_sec * 1000 + (long)time.tv_usec / 1000;
+  printf("Kernel took: %.3lf seconds\n", (end - start) / 1000.0);
   if (err != CL_SUCCESS) {
     fprintf(stderr, "Kernel enqueue error? %d\n", err);
     abort();
